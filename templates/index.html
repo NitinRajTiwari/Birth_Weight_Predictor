@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birth Weight Predictor</title>
+    <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet"> -->
+    <link rel="stylesheet" href="./static/index.css">
+    <style>
+        /* --- Base Styles & Variables --- */
+        
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Birth Weight Predictor</h1>
+        <p class="subtitle">Enter the details below to get a prediction.</p>
+        
+        <!-- The action and method attributes are not strictly needed when using JavaScript for submission -->
+        <form id="prediction-form">
+            <div class="form-group">
+                <label for="gestation">Gestation Period (Days)</label>
+                <input type="number" id="gestation" name="gestation" required placeholder="e.g., 2xx">
+            </div>
+            
+            <div class="form-group">
+                <label for="parity">Parity (previous births)</label>
+                <input type="number" id="parity" name="parity" required placeholder="e.g., 1">
+            </div>
+
+            <div class="form-group">
+                <label for="bmi">BMI (Body Mass Index)</label>
+                <input type="number" step="0.1" id="bmi" name="BMI" required placeholder="e.g., 24.5">
+            </div>
+            
+            <div class="form-group">
+                <label>Is the mother a smoker?</label>
+                <div class="radio-group">
+                     <label class="radio-label">
+                        <input type="radio" name="smoke" value="1" required> Yes
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="smoke" value="0" checked> No
+                    </label>
+                </div>
+            </div>
+
+            <input type="submit" value="Predict Birth Weight" class="submit-btn">
+        </form>
+
+        <div id="result-container"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('prediction-form');
+        const resultContainer = document.getElementById('result-container');
+
+        form.addEventListener('submit', async function(event) {
+            // Prevent the default form submission which reloads the page
+            event.preventDefault();
+
+            // Clear previous results and show a loading message
+            resultContainer.innerHTML = '<p style="color: var(--text-light);">Calculating...</p>';
+
+            // 1. Get data from the form
+            const formData = new FormData(form);
+            const data = {
+                // Use parseFloat and parseInt to ensure numbers are sent, not strings
+                gestation: [parseFloat(formData.get('gestation'))],
+                parity:[ parseInt(formData.get('parity'), 10)],
+                smoke: [parseFloat( formData.get('smoke'))],
+                BMI: [parseFloat(formData.get('BMI'))]
+            };
+
+            try {
+                // 2. Send the data to the Flask backend's /predict endpoint
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                // console.log(result)
+                if (!response.ok) {
+                    throw new Error(result.error || `Server Error: ${response.status}`);
+                }
+
+                // 3. Display the successful prediction
+                const predictionValue = result["Birth Weight"]
+                resultContainer.innerHTML = `
+                    <div class="result-box success">
+                        <p class="result-title">Predicted Birth Weight:</p>
+                        <p class="result-value">${predictionValue} grams</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                // 4. Display any errors that occur
+                console.error('Prediction Error:', error);
+                resultContainer.innerHTML = `
+                    <div class="result-box error">
+                        <p class="result-title">Error</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                console.log(error)
+            }
+        });
+    </script>
+</body>
+</html>
